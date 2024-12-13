@@ -1,0 +1,161 @@
+
+// ProfileContext.js
+import React, { createContext, useState } from 'react';
+
+const ProfileContext = createContext();
+
+export const ProfileProvider = ({ children }) => {
+  const [profiles, setProfiles] = useState([
+    { id: 1, name: 'Admin', role: 'admin' },
+    { id: 2, name: 'Service Provider', role: 'serviceProvider' },
+  ]);
+
+  const [activeProfile, setActiveProfile] = useState(profiles[0]);
+
+  const switchProfile = (profileId) => {
+    const selectedProfile = profiles.find((profile) => profile.id === profileId);
+    if (selectedProfile) {
+      setActiveProfile(selectedProfile);
+    }
+  };
+
+  return (
+    <ProfileContext.Provider value={{ profiles, activeProfile, switchProfile }}>
+      {children}
+    </ProfileContext.Provider>
+  );
+};
+
+export default ProfileContext;
+
+// useProfile.js
+import React, { useContext } from 'react';
+import ProfileContext from './ProfileContext';
+
+export const useProfile = () => {
+  const { profiles, activeProfile, switchProfile } = useContext(ProfileContext);
+
+  return { profiles, activeProfile, switchProfile };
+};
+
+// App.js
+import React from 'react';
+import { ProfileProvider } from './ProfileContext';
+import Navigator from './Navigator';
+
+const App = () => {
+  return (
+    <ProfileProvider>
+      <Navigator />
+    </ProfileProvider>
+  );
+};
+
+export default App;
+
+// Navigator.js
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useProfile } from './useProfile';
+import AdminStack from './AdminStack';
+import ServiceProviderStack from './ServiceProviderStack';
+
+const Stack = createNativeStackNavigator();
+
+const Navigator = () => {
+  const { activeProfile } = useProfile();
+
+  return (
+    <Stack.Navigator>
+      {activeProfile.role === 'admin' ? (
+        <Stack.Screen name="AdminStack" component={AdminStack} />
+      ) : (
+        <Stack.Screen name="ServiceProviderStack" component={ServiceProviderStack} />
+      )}
+    </Stack.Navigator>
+  );
+};
+
+export default Navigator;
+
+// AdminStack.js
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AdminHomeScreen from './AdminHomeScreen';
+
+const Stack = createNativeStackNavigator();
+
+const AdminStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
+      {/* Add more screens for the admin stack */}
+    </Stack.Navigator>
+  );
+};
+
+export default AdminStack;
+
+// ServiceProviderStack.js
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import ServiceProviderHomeScreen from './ServiceProviderHomeScreen';
+
+const Stack = createNativeStackNavigator();
+
+const ServiceProviderStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="ServiceProviderHome" component={ServiceProviderHomeScreen} />
+      {/* Add more screens for the service provider stack */}
+    </Stack.Navigator>
+  );
+};
+
+export default ServiceProviderStack;
+
+// AdminHomeScreen.js
+import React from 'react';
+import { View, Text, Button } from 'react-native';
+import { useProfile } from './useProfile';
+
+const AdminHomeScreen = () => {
+  const { switchProfile } = useProfile();
+
+  const handleSwitchProfile = () => {
+    switchProfile(2); // Switch to Service Provider profile
+  };
+
+  return (
+    <View>
+      <Text>Admin Home Screen</Text>
+      <Button title="Switch to Service Provider" onPress={handleSwitchProfile} />
+    </View>
+  );
+};
+
+export default AdminHomeScreen;
+
+// ServiceProviderHomeScreen.js
+import React from 'react';
+import { View, Text, Button } from 'react-native';
+import { useProfile } from './useProfile';
+
+const ServiceProviderHomeScreen = () => {
+  const { switchProfile } = useProfile();
+
+  const handleSwitchProfile = () => {
+    switchProfile(1); // Switch to Admin profile
+  };
+
+  return (
+    <View>
+      <Text>Service Provider Home Screen</Text>
+      <Button title="Switch to Admin" onPress={handleSwitchProfile} />
+    </View>
+  );
+};
+
+export default ServiceProviderHomeScreen;
+
+#  this is impoementation algoritm switch profile algorithm. I logged in my account as admin but i have naother profile service provider. I want to login as admin everytimg and can be a service provider by changing in my profile side bar menu option

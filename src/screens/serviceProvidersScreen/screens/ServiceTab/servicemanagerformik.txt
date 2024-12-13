@@ -1,0 +1,498 @@
+import React, { useEffect, useState } from "react";
+import { SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
+import { useServiceStore } from "../../../../stateManagement/serviceProvider/useServiceStore";
+import {
+  createService,
+  updateService,
+  deleteService,
+  fetchServices,
+} from "../../../../services/serviceProvider/serviceProviderServices";
+import { Modal } from "react-native-paper";
+import { Formik } from "formik";
+import * as Yup from "yup";
+import ServicesLists from "./ServicesLists";
+
+const validationSchema = Yup.object().shape({
+  serviceName: Yup.string().required("Service name is required"),
+  serviceCategory: Yup.string().required("Service category is required"),
+  serviceFeatures: Yup.string().required("Service features are required"),
+  basePrice: Yup.number()
+    .required("Base price is required")
+    .positive("Base price must be positive"),
+  pax: Yup.number()
+    .required("Pax is required")
+    .positive("Pax must be positive"),
+  requirements: Yup.string().required("Requirements are required"),
+});
+
+const ServiceManager = () => {
+  const [createServiceModalVisible, setCreateServiceModalVisible] =
+    useState(false);
+  const { services, newService, updateNewService, setServices } =
+    useServiceStore();
+  const [refresh, setRefresh] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  useEffect(() => {
+    const fetchServicesData = async () => {
+      try {
+        const data = await fetchServices();
+        setServices(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchServicesData();
+  }, [refresh, setServices]);
+
+  const handleCreateService = async (values) => {
+    try {
+      const response = await createService(values);
+      setRefresh(!refresh); // Refresh the component
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUpdateService = async (id, updatedService) => {
+    try {
+      const response = await updateService(id, updatedService);
+      setRefresh(!refresh); // Refresh the component
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const handleEditService = (service) => {
+    setEditingService(service);
+    setModalVisible(true);
+  };
+
+  const handleSaveService = async (values) => {
+    try {
+      const response = await updateService(editingService.id, values);
+      setRefresh(!refresh); // Refresh the component
+      setEditingService(null);
+      setModalVisible(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDeleteService = async (id) => {
+    try {
+      await deleteService(id);
+      setRefresh(!refresh); // Refresh the component
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const renderServiceItem = ({ item }) => (
+    <SafeAreaView>
+      <View style={styles.serviceCard}>
+        <Text style={styles.serviceName}>{item.serviceName}</Text>
+        <Text style={styles.serviceCategory}>{item.serviceCategory}</Text>
+        <Text style={styles.servicePrice}>Price: ₱{item.basePrice}</Text>
+        <Text style={styles.servicePax}>Pax: {item.pax}</Text>
+        <Text style={styles.serviceDuration}>
+          Service Features: {item.serviceFeatures}
+        </Text>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.updateButton}
+            onPress={() => handleEditService(item)}
+          >
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteService(item.id)}
+          >
+            <Text style={styles.buttonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Service Manager</Text>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => setCreateServiceModalVisible(true)}
+      >
+        <Text style={styles.buttonText}>Add Service</Text>
+      </TouchableOpacity>
+      <Modal
+        animationType="fade"
+        transparent={false}
+        visible={createServiceModalVisible}
+        onRequestClose={() => setCreateServiceModalVisible(false)}
+        elevation={1000}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalText}>Add Service</Text>
+            <Formik
+              initialValues={{
+                serviceName: "",
+                serviceCategory: "",
+                serviceFeatures: "",
+                basePrice: "",
+                pax: "",
+                requirements: "",
+              }}
+              validationSchema={validationSchema}
+              onSubmit={(values, actions) => {
+                handleCreateService(values);
+                actions.resetForm();
+                setCreateServiceModalVisible(false);
+              }}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+              }) => (
+                <View style={styles.modalForm}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Service Name"
+                    value={values.serviceName}
+                    onChangeText={handleChange("serviceName")}
+                    onBlur={handleBlur("serviceName")}
+                  />
+                  {errors.serviceName && touched.serviceName && (
+                    <Text style={styles.errorText}>{errors.serviceName}</Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Service Category"
+                    value={values.serviceCategory}
+                    onChangeText={handleChange("serviceCategory")}
+                    onBlur={handleBlur("serviceCategory")}
+                  />
+                  {errors.serviceCategory && touched.serviceCategory && (
+                    <Text style={styles.errorText}>
+                      {errors.serviceCategory}
+                    </Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Inclusions (e.g., feature 1, feature 2..)"
+                    value={values.serviceFeatures}
+                    onChangeText={handleChange("serviceFeatures")}
+                    onBlur={handleBlur("serviceFeatures")}
+                  />
+                  {errors.serviceFeatures && touched.serviceFeatures && (
+                    <Text style={styles.errorText}>
+                      {errors.serviceFeatures}
+                    </Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Base Price"
+                    value={values.basePrice}
+                    onChangeText={handleChange("basePrice")}
+                    onBlur={handleBlur("basePrice")}
+                    keyboardType="numeric"
+                  />
+                  {errors.basePrice && touched.basePrice && (
+                    <Text style={styles.errorText}>{errors.basePrice}</Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Pax"
+                    value={values.pax}
+                    onChangeText={handleChange("pax")}
+                    onBlur={handleBlur("pax")}
+                    keyboardType="numeric"
+                  />
+                  {errors.pax && touched.pax && (
+                    <Text style={styles.errorText}>{errors.pax}</Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Requirements"
+                    value={values.requirements}
+                    onChangeText={handleChange("requirements")}
+                    onBlur={handleBlur("requirements")}
+                  />
+                  {errors.requirements && touched.requirements && (
+                    <Text style={styles.errorText}>{errors.requirements}</Text>
+                  )}
+                  <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={handleSubmit}
+                  >
+                    <Text style={styles.createButtonText}>Create Service</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={() => {
+                      setCreateServiceModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.createButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Formik>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text style={styles.modalText}>Edit Service</Text>
+            <Formik
+              initialValues={{
+                serviceName: editingService ? editingService.serviceName : "",
+                serviceCategory: editingService
+                  ? editingService.serviceCategory
+                  : "",
+                serviceFeatures: editingService
+                  ? editingService.serviceFeatures
+                  : "",
+                basePrice: editingService ? editingService.basePrice : "",
+                pax: editingService ? editingService.pax : "",
+                requirements: editingService ? editingService.requirements : "",
+              }}
+              validationSchema={validationSchema}
+              onSubmit={(values, actions) => {
+                handleSaveService(values);
+                actions.resetForm();
+              }}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+              }) => (
+                <View style={styles.modalForm}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Service Name"
+                    value={values.serviceName}
+                    onChangeText={handleChange("serviceName")}
+                    onBlur={handleBlur("serviceName")}
+                  />
+                  {errors.serviceName && touched.serviceName && (
+                    <Text style={styles.errorText}>{errors.serviceName}</Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Service Category"
+                    value={values.serviceCategory}
+                    onChangeText={handleChange("serviceCategory")}
+                    onBlur={handleBlur("serviceCategory")}
+                  />
+                  {errors.serviceCategory && touched.serviceCategory && (
+                    <Text style={styles.errorText}>
+                      {errors.serviceCategory}
+                    </Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Inclusions (e.g., feature 1, feature 2..)"
+                    value={values.serviceFeatures}
+                    onChangeText={handleChange("serviceFeatures")}
+                    onBlur={handleBlur("serviceFeatures")}
+                  />
+                  {errors.serviceFeatures && touched.serviceFeatures && (
+                    <Text style={styles.errorText}>
+                      {errors.serviceFeatures}
+                    </Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Base Price"
+                    value={values.basePrice}
+                    onChangeText={handleChange("basePrice")}
+                    onBlur={handleBlur("basePrice")}
+                    keyboardType="numeric"
+                  />
+                  {errors.basePrice && touched.basePrice && (
+                    <Text style={styles.errorText}>{errors.basePrice}</Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Pax"
+                    value={values.pax}
+                    onChangeText={handleChange("pax")}
+                    onBlur={handleBlur("pax")}
+                    keyboardType="numeric"
+                  />
+                  {errors.pax && touched.pax && (
+                    <Text style={styles.errorText}>{errors.pax}</Text>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Requirements"
+                    value={values.requirements}
+                    onChangeText={handleChange("requirements")}
+                    onBlur={handleBlur("requirements")}
+                  />
+                  {errors.requirements && touched.requirements && (
+                    <Text style={styles.errorText}>{errors.requirements}</Text>
+                  )}
+                  <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={() => handleSaveService(values)}
+                  >
+                    <Text style={styles.createButtonText}>Save Changes</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Formik>
+          </View>
+        </View>
+      </Modal>
+      <ServicesLists />
+      <FlatList
+        data={services}
+        renderItem={renderServiceItem}
+        keyExtractor={(item) => item.id.toString()}
+        style={[
+          {
+            backgroundColor: "red",
+            width: "100%",
+            height: "100%",
+            position: "relative",
+          },
+        ]}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#FFF",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#FFD700",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  createButton: {
+    backgroundColor: "#FFD700",
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  createButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 100,
+  },
+  input: {
+    height: 40,
+    borderColor: "#DDD",
+    borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  serviceCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  serviceName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  serviceCategory: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 5,
+  },
+  servicePrice: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFD700",
+  },
+  servicePax: {
+    fontSize: 16,
+    color: "#888",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  updateButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+  },
+  deleteButton: {
+    backgroundColor: "#F44336",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+});
+
+export default ServiceManager;

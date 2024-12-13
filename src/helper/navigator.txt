@@ -1,0 +1,532 @@
+import React, { useState } from "react";
+import {
+  SafeAreaView,
+  ImageBackground,
+  StyleSheet,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+  View,
+  TouchableOpacity,
+  Image,
+} from "react-native";
+import {
+  Text,
+  Button,
+  TextInput,
+  Menu,
+  Divider,
+  Provider as PaperProvider,
+  Checkbox,
+} from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-root-toast";
+import {
+  widthPercentageToDP,
+  heightPercentageToDP,
+} from "react-native-responsive-screen";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+import * as ImagePicker from "expo-image-picker";
+import { signup } from "../../services/authServices";
+
+const Registerold = () => {
+  const [step, setStep] = useState(1); // Step tracking for progressive disclosure
+  const [fullName, setFullName] = useState("");
+  const [gender, setGender] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState(new Date());
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [roleMenuVisible, setRoleMenuVisible] = useState(false);
+
+  const handleNextStep = () => {
+    setStep(2);
+  };
+
+  const handlePreviousStep = () => {
+    setStep(1);
+  };
+
+  const handleDateConfirm = (date) => {
+    setDateOfBirth(date);
+    setDatePickerVisibility(false);
+  };
+
+  const openDatePicker = () => setDatePickerVisibility(true);
+
+  const openRoleMenu = () => setRoleMenuVisible(true);
+  const closeRoleMenu = () => setRoleMenuVisible(false);
+
+  return (
+    <ImageBackground
+      source={require("../customerScreens/pictures/authbg.png")} // Use your actual path here
+      style={styles.backgroundImage}
+    >
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : null}
+          style={styles.container}
+        >
+          <ScrollView contentContainerStyle={styles.formContainer}>
+            <Text style={styles.headerText}>Registration Form</Text>
+            <PaperProvider>
+              {step === 1 ? (
+                // Step 1 UI
+                <View style={styles.stepContainer}>
+                  <TextInput
+                    label="Full Name"
+                    value={fullName}
+                    onChangeText={(text) => setFullName(text)}
+                    style={styles.input}
+                    mode="outlined"
+                  />
+                  <Menu
+                    visible={roleMenuVisible}
+                    onDismiss={closeRoleMenu}
+                    anchor={
+                      <TouchableOpacity onPress={openRoleMenu}>
+                        <TextInput
+                          label="Gender"
+                          value={gender}
+                          editable={false}
+                          style={styles.input}
+                          mode="outlined"
+                        />
+                      </TouchableOpacity>
+                    }
+                  >
+                    <Menu.Item onPress={() => setGender("Male")} title="Male" />
+                    <Menu.Item
+                      onPress={() => setGender("Female")}
+                      title="Female"
+                    />
+                    <Menu.Item
+                      onPress={() => setGender("Other")}
+                      title="Other"
+                    />
+                  </Menu>
+                  <TouchableOpacity onPress={openDatePicker}>
+                    <TextInput
+                      label="Date of Birth"
+                      value={dateOfBirth.toLocaleDateString()}
+                      editable={false}
+                      style={styles.input}
+                      mode="outlined"
+                    />
+                  </TouchableOpacity>
+                  <DateTimePickerModal
+                    isVisible={isDatePickerVisible}
+                    mode="date"
+                    onConfirm={handleDateConfirm}
+                    onCancel={() => setDatePickerVisibility(false)}
+                  />
+                  <TextInput
+                    label="Email Address"
+                    value={email}
+                    onChangeText={(text) => setEmail(text)}
+                    style={styles.input}
+                    mode="outlined"
+                  />
+                  <TextInput
+                    label="Phone Number"
+                    value={phoneNumber}
+                    onChangeText={(text) => setPhoneNumber(text)}
+                    style={styles.input}
+                    mode="outlined"
+                    keyboardType="phone-pad"
+                  />
+                  <Button
+                    mode="contained"
+                    onPress={handleNextStep}
+                    style={styles.button}
+                  >
+                    Next
+                  </Button>
+                </View>
+              ) : (
+                // Step 2 UI
+                <View style={styles.stepContainer}>
+                  <TextInput
+                    label="Username"
+                    value={username}
+                    onChangeText={(text) => setUsername(text)}
+                    style={styles.input}
+                    mode="outlined"
+                  />
+                  <TextInput
+                    label="Password"
+                    value={password}
+                    onChangeText={(text) => setPassword(text)}
+                    style={styles.input}
+                    mode="outlined"
+                    secureTextEntry
+                  />
+                  <TextInput
+                    label="Confirm Password"
+                    value={confirmPassword}
+                    onChangeText={(text) => setConfirmPassword(text)}
+                    style={styles.input}
+                    mode="outlined"
+                    secureTextEntry
+                  />
+                  <Menu
+                    visible={roleMenuVisible}
+                    onDismiss={closeRoleMenu}
+                    anchor={
+                      <TouchableOpacity onPress={openRoleMenu}>
+                        <TextInput
+                          label="User Role"
+                          value={selectedRole}
+                          editable={false}
+                          style={styles.input}
+                          mode="outlined"
+                        />
+                      </TouchableOpacity>
+                    }
+                  >
+                    <Menu.Item
+                      onPress={() => setSelectedRole("Admin")}
+                      title="Admin"
+                    />
+                    <Menu.Item
+                      onPress={() => setSelectedRole("Service Provider")}
+                      title="Service Provider"
+                    />
+                    <Menu.Item
+                      onPress={() => setSelectedRole("Customer")}
+                      title="Customer"
+                    />
+                  </Menu>
+                  <View style={styles.checkboxContainer}>
+                    <Checkbox
+                      status={termsAccepted ? "checked" : "unchecked"}
+                      onPress={() => setTermsAccepted(!termsAccepted)}
+                    />
+                    <Text>I agree to the Terms and Conditions</Text>
+                  </View>
+                  <View style={styles.buttonContainer}>
+                    <Button
+                      mode="outlined"
+                      onPress={handlePreviousStep}
+                      style={styles.button}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={() => {}}
+                      style={styles.button}
+                    >
+                      Submit
+                    </Button>
+                  </View>
+                </View>
+              )}
+            </PaperProvider>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
+  );
+};
+
+const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover",
+  },
+  container: {
+    flex: 1,
+    alignItems: "center",
+  },
+  formContainer: {
+    alignItems: "center",
+    paddingVertical: heightPercentageToDP("5%"),
+  },
+  headerText: {
+    marginTop: heightPercentageToDP("4%"),
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: widthPercentageToDP("10%"),
+  },
+  headerTe: {
+    marginTop: heightPercentageToDP("1%"),
+    marginBottom: heightPercentageToDP("5%"),
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: widthPercentageToDP("10%"),
+  },
+  inputStyle: {
+    width: widthPercentageToDP("80%"),
+    marginBottom: heightPercentageToDP("2%"),
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 2,
+    borderColor: "#C2B067",
+  },
+  menuContent: {
+    backgroundColor: "black",
+    alignItems: "center",
+    borderRadius: 10,
+    width: 250,
+    marginLeft: -50,
+  },
+  menuItemContainer: {
+    alignItems: "center",
+    paddingVertical: 5,
+  },
+  menuTitle: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 12,
+    textAlign: "center",
+  },
+  menuItemButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#C2B067",
+    marginVertical: 5,
+    width: 200,
+  },
+  selectedMenuItemButton: {
+    backgroundColor: "#C2B067",
+  },
+  menuItemText: {
+    color: "white",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  dropdown: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 10,
+    backgroundColor: "#FFC42B",
+    borderRadius: 30,
+    marginBottom: 10,
+    width: widthPercentageToDP("80%"),
+  },
+  genderContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: widthPercentageToDP("80%"),
+    marginBottom: heightPercentageToDP("2%"),
+  },
+  dateContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: widthPercentageToDP("80%"),
+    marginBottom: heightPercentageToDP("2%"),
+  },
+  Gender: {
+    padding: 10,
+    borderRadius: 30,
+    width: "23%",
+    alignItems: "center",
+    color: "#fff",
+  },
+  Date: {
+    padding: 10,
+    borderRadius: 30,
+    width: "30%",
+    alignItems: "center",
+    color: "#fff",
+  },
+  genderButton: {
+    padding: 10,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#FFC42B",
+    width: "30%",
+    alignItems: "center",
+  },
+  selectedGender: {
+    backgroundColor: "#A97E00",
+  },
+  genderText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  datePickerButton: {
+    width: widthPercentageToDP("55%"),
+    padding: 10,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#FFC42B",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: heightPercentageToDP("2%"),
+  },
+  datePickerText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  uploadButton: {
+    padding: 15,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#FFC42B",
+    width: "60%",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  uploadText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  image: {
+    width: 200,
+    height: 200,
+    marginTop: 20,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: heightPercentageToDP("3%"),
+  },
+  checkboxWrapper: {
+    backgroundColor: "rgba(255, 255, 255, 0.50)",
+    borderRadius: 12,
+    marginRight: 10,
+    height: 23,
+  },
+  checkboxText: {
+    color: "white",
+    fontSize: 16,
+  },
+  buttonStyle: {
+    width: widthPercentageToDP("30%"),
+    height: heightPercentageToDP("5%"),
+    marginBottom: heightPercentageToDP("2%"),
+    backgroundColor: "#EEBA2B",
+  },
+  menuStyle: {
+    width: widthPercentageToDP("50%"),
+  },
+
+  inputStyle: {
+    width: widthPercentageToDP("80%"),
+    marginBottom: heightPercentageToDP("2%"),
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 2,
+    borderColor: "#C2B067",
+  },
+  menuContent: {
+    backgroundColor: "black",
+    alignItems: "center",
+    borderRadius: 10,
+    width: 250,
+    marginLeft: -50,
+  },
+  menuItemContainer: {
+    alignItems: "center",
+    paddingVertical: 5,
+  },
+  genderContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: widthPercentageToDP("80%"),
+    marginBottom: heightPercentageToDP("2%"),
+  },
+  dateContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: widthPercentageToDP("80%"),
+    marginBottom: heightPercentageToDP("2%"),
+  },
+  Gender: {
+    padding: 10,
+    borderRadius: 30,
+    width: "23%",
+    alignItems: "center",
+    color: "#000",
+  },
+  Date: {
+    padding: 10,
+    borderRadius: 30,
+    width: "30%",
+    alignItems: "center",
+    color: "#000",
+  },
+  genderButton: {
+    padding: 10,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#FFC42B",
+    width: "30%",
+    alignItems: "center",
+  },
+  selectedGender: {
+    backgroundColor: "#A97E00",
+  },
+  genderText: {
+    color: "#000",
+    fontWeight: "bold",
+  },
+  datePickerButton: {
+    width: widthPercentageToDP("55%"),
+    padding: 10,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#FFC42B",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: heightPercentageToDP("2%"),
+  },
+  datePickerText: {
+    color: "#000",
+    fontWeight: "bold",
+  },
+  uploadButton: {
+    padding: 15,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#FFC42B",
+    width: "60%",
+    alignItems: "center",
+    alignContent: "center",
+    marginBottom: 10,
+  },
+  uploadText: {
+    color: "#000",
+    fontWeight: "bold",
+  },
+  image: {
+    width: 200,
+    height: 200,
+    marginTop: 20,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: heightPercentageToDP("3%"),
+  },
+  checkboxWrapper: {
+    backgroundColor: "rgba(220, 220, 220, 0.80)",
+    borderRadius: 12,
+    marginRight: 10,
+    height: 23,
+  },
+  checkboxText: {
+    color: "#000",
+    fontSize: 16,
+  },
+  buttonStyle: {
+    width: widthPercentageToDP("50%"),
+    height: heightPercentageToDP("6%"),
+    marginBottom: heightPercentageToDP("2%"),
+    backgroundColor: "#EEBA2B",
+  },
+  menuStyle: {
+    width: widthPercentageToDP("50%"),
+  },
+});
+
+export default Registerold;
